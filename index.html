@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grethes skiftkalender</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #35647a;
+      --blue-soft: #e2edf1;
+      --orange: #c77b35;
+      --orange-soft: #f8ead7;
+      --green: #66856a;
+      --green-soft: #e5ede5;
+      --denmark: #b84d52;
+      --denmark-soft: #f2dcde;
+      --ink: #24313a;
+      --muted: #737d82;
+      --paper: #f5f3ec;
+      --card: #fffefa;
+      --line: #dddcd4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(rgb(49 87 122 / 4%) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(49 87 122 / 4%) 1px, transparent 1px),
+        var(--paper);
+      background-size: 24px 24px;
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+    }
+
+    .page {
+      width: min(100% - 28px, 980px);
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 4px 0 0;
+      color: var(--blue);
+      font-size: clamp(30px, 6vw, 46px);
+      line-height: 1;
+    }
+
+    .kicker {
+      margin: 0;
+      color: var(--orange);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--card);
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 750;
+    }
+
+    .month-nav button {
+      width: 42px;
+      padding: 0;
+      font-size: 20px;
+    }
+
+    #month-title {
+      min-width: 170px;
+      text-align: center;
+    }
+
+    .calendar {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: 0 12px 32px rgb(36 49 58 / 7%);
+    }
+
+    .weekdays,
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .weekdays div {
+      padding: 11px 8px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .day {
+      position: relative;
+      min-height: 118px;
+      padding: 10px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: white;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .day:nth-child(7n) { border-right: 0; }
+    .day.is-outside { background: #faf9f5; color: #afb3af; }
+    .day.is-today { box-shadow: inset 0 0 0 2px var(--blue); }
+    .day.is-day-shift {
+      background: var(--orange-soft);
+      border-color: #e8cda8;
+    }
+    .day.is-evening-shift {
+      background: var(--blue-soft);
+      border-color: #bdced7;
+    }
+    .day.is-off-shift {
+      background: var(--green-soft);
+      border-color: #bdccbf;
+    }
+    .day.is-denmark-shift {
+      background: var(--denmark-soft);
+      border-color: #deb2b5;
+    }
+
+    .day-number {
+      display: inline-grid;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      border-radius: 50%;
+      font-size: 13px;
+    }
+
+    .day.is-today .day-number {
+      background: var(--blue);
+      color: white;
+    }
+
+    .shift {
+      display: block;
+      margin-top: 9px;
+      padding: 8px 7px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .shift.day-shift { background: var(--orange-soft); color: #8a541f; }
+    .shift.evening-shift { background: var(--blue-soft); color: #31577a; }
+    .shift.off-shift { background: var(--green-soft); color: #526c57; }
+    .shift.denmark-shift { background: var(--denmark-soft); color: var(--denmark); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .dot-day { background: var(--orange); }
+    .dot-evening { background: var(--blue); }
+    .dot-off { background: var(--green); }
+    .dot-denmark { background: var(--denmark); }
+    .denmark-flag {
+      display: inline-block;
+      width: 24px;
+      height: 16px;
+      flex: 0 0 24px;
+      margin-right: 3px;
+      border: 1px solid rgb(36 49 58 / 10%);
+      border-radius: 2px;
+      background:
+        linear-gradient(90deg, transparent 0 28%, white 28% 36%, transparent 36%),
+        linear-gradient(0deg, transparent 0 42%, white 42% 58%, transparent 58%),
+        #c8102e;
+      vertical-align: middle;
+    }
+
+    .dialog-backdrop[hidden] { display: none; }
+
+    .dialog-backdrop {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgb(36 49 58 / 42%);
+    }
+
+    .dialog {
+      width: min(100%, 380px);
+      padding: 22px;
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: 0 20px 60px rgb(36 49 58 / 25%);
+    }
+
+    .dialog h2 {
+      margin: 0 0 4px;
+      color: var(--blue);
+    }
+
+    .dialog p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .shift-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .shift-option {
+      min-height: 68px;
+      padding: 12px 8px;
+      font-size: 17px;
+      line-height: 1.15;
+    }
+
+    .shift-option.selected {
+      outline: 3px solid rgb(49 87 122 / 18%);
+      border-color: var(--blue);
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .dialog-actions button {
+      padding: 0 14px;
+    }
+
+    .save-button {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mode-bar strong { color: var(--ink); }
+
+    @media (max-width: 620px) {
+      .page { width: min(100% - 18px, 980px); padding-top: 20px; }
+      header { align-items: flex-start; flex-direction: column; }
+      h1 { font-size: 34px; }
+      .month-nav { width: 100%; justify-content: space-between; }
+      #month-title { flex: 1; min-width: 0; }
+      .weekdays div { padding-inline: 2px; font-size: 10px; }
+      .day { min-height: 96px; padding: 8px 4px; }
+      .day-number { width: 28px; height: 28px; font-size: 14px; }
+      .shift { margin-top: 7px; padding: 9px 2px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <p class="kicker">Grethes kalender</p>
+        <h1>Grethes skiftkalender</h1>
+      </div>
+      <div class="month-nav">
+        <button id="previous-month" type="button" aria-label="Forrige måned">‹</button>
+        <strong id="month-title"></strong>
+        <button id="next-month" type="button" aria-label="Neste måned">›</button>
+      </div>
+    </header>
+
+    <div class="mode-bar" id="mode-bar"></div>
+
+    <section class="calendar" aria-label="Månedskalender">
+      <div class="weekdays" aria-hidden="true">
+        <div>Man</div>
+        <div>Tir</div>
+        <div>Ons</div>
+        <div>Tor</div>
+        <div>Fre</div>
+        <div>Lør</div>
+        <div>Søn</div>
+      </div>
+      <div class="days" id="days"></div>
+    </section>
+
+    <div class="legend" aria-label="Skiftforklaring">
+      <span class="legend-item"><span class="legend-dot dot-day"></span>☀️ Dag</span>
+      <span class="legend-item"><span class="legend-dot dot-evening"></span>🌙 Kveld</span>
+      <span class="legend-item"><span class="legend-dot dot-off"></span>🏠 Fri</span>
+      <span class="legend-item"><span class="denmark-flag" aria-hidden="true"></span>Danmark</span>
+    </div>
+  </main>
+
+  <div class="dialog-backdrop" id="dialog-backdrop" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <h2 id="dialog-title">Velg skift</h2>
+      <p id="dialog-date"></p>
+      <div class="shift-options">
+        <button class="shift-option" type="button" data-option="day">☀️ Dagskift</button>
+        <button class="shift-option" type="button" data-option="evening">🌙 Kveldsskift</button>
+        <button class="shift-option" type="button" data-option="off">🏠 Fri</button>
+        <button class="shift-option" type="button" data-option="denmark"><span class="denmark-flag" aria-hidden="true"></span>Danmark</button>
+      </div>
+      <div class="dialog-actions">
+        <button id="clear-shift" type="button">Fjern</button>
+        <button class="save-button" id="save-shift" type="button">Lagre</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const isAdmin = params.get("mode") !== "view";
+    const storageKey = "skjervedal-shift-calendar-v1";
+    const supabaseUrl = "https://cagdvzrjkjrewgzbfjkc.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhZ2R2enJqa2pyZXdnemJmamtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNDQ1MTYsImV4cCI6MjExMDkyMDUxNn0.TLRsIkw78BhEW2TE_Wp5_uy8FL817V8f1UxfhhVCpM0";
+
+    let currentMonth = new Date();
+    currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    let shifts = loadShifts();
+    let selectedDate = null;
+    let selectedShift = null;
+
+    const daysElement = document.getElementById("days");
+    const monthTitle = document.getElementById("month-title");
+    const dialog = document.getElementById("dialog-backdrop");
+
+    function toDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function loadShifts() {
+      try {
+        return JSON.parse(localStorage.getItem(storageKey)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveShiftsLocally() {
+      localStorage.setItem(storageKey, JSON.stringify(shifts));
+    }
+
+    async function loadCloudShifts() {
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/shifts?select=date,shift`,
+          {
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`
+            }
+          }
+        );
+        if (!response.ok) throw new Error(`Cloud read failed: ${response.status}`);
+
+        const rows = await response.json();
+        shifts = {};
+        rows.forEach(row => {
+          if (row.date && row.shift) shifts[row.date] = row.shift;
+        });
+        saveShiftsLocally();
+        render();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function saveCloudShift(dateKey, shiftValue) {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/shifts`,
+        {
+          method: "POST",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates"
+          },
+          body: JSON.stringify([{ date: dateKey, shift: shiftValue }])
+        }
+      );
+      if (!response.ok) throw new Error(`Cloud save failed: ${response.status}`);
+    }
+
+    async function clearCloudShift(dateKey) {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/shifts?date=eq.${encodeURIComponent(dateKey)}`,
+        {
+          method: "DELETE",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`
+          }
+        }
+      );
+      if (!response.ok) throw new Error(`Cloud delete failed: ${response.status}`);
+    }
+
+    function formatMonth(date) {
+      return new Intl.DateTimeFormat("nb-NO", {
+        month: "long",
+        year: "numeric"
+      }).format(date);
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat("nb-NO", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      }).format(date);
+    }
+
+    function render() {
+      monthTitle.textContent = formatMonth(currentMonth);
+      document.getElementById("mode-bar").innerHTML = isAdmin
+        ? "<strong>Redigeringsmodus</strong><span>– trykk på en dag for å sette skift</span>"
+        : "<strong>Visningsmodus</strong><span>– endringer kan kun gjøres med redigeringslenken</span>";
+
+      const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const mondayOffset = (firstDay.getDay() + 6) % 7;
+      const gridStart = new Date(firstDay);
+      gridStart.setDate(firstDay.getDate() - mondayOffset);
+
+      daysElement.innerHTML = "";
+
+      for (let index = 0; index < 42; index += 1) {
+        const date = new Date(gridStart);
+        date.setDate(gridStart.getDate() + index);
+        const key = toDateKey(date);
+        const shift = shifts[key];
+        const isOutside = date.getMonth() !== currentMonth.getMonth();
+        const today = toDateKey(new Date()) === key;
+
+        const button = document.createElement("button");
+        button.type = "button";
+        const shiftClass = shift
+          ? (shift === "day"
+            ? " is-day-shift"
+            : shift === "evening"
+              ? " is-evening-shift"
+              : shift === "off"
+                ? " is-off-shift"
+                : " is-denmark-shift")
+          : "";
+        button.className = `day${isOutside ? " is-outside" : ""}${today ? " is-today" : ""}${shiftClass}`;
+        button.dataset.date = key;
+
+        let shiftMarkup = "";
+        if (shift === "day") shiftMarkup = '<span class="shift day-shift">☀️ Dag</span>';
+        if (shift === "evening") shiftMarkup = '<span class="shift evening-shift">🌙 Kveld</span>';
+        if (shift === "off") shiftMarkup = '<span class="shift off-shift">🏠 Fri</span>';
+        if (shift === "denmark") shiftMarkup = '<span class="shift denmark-shift"><span class="denmark-flag" aria-hidden="true"></span>Danmark</span>';
+
+        button.innerHTML = `<span class="day-number">${date.getDate()}</span>${shiftMarkup}`;
+        button.disabled = !isAdmin;
+        daysElement.append(button);
+      }
+    }
+
+    function openDialog(dateKey) {
+      if (!isAdmin) return;
+
+      selectedDate = dateKey;
+      selectedShift = shifts[dateKey] || null;
+      const date = new Date(`${dateKey}T12:00:00`);
+
+      document.getElementById("dialog-date").textContent = formatDate(date);
+      document.querySelectorAll(".shift-option").forEach(button => {
+        button.classList.toggle("selected", button.dataset.option === selectedShift);
+      });
+      dialog.hidden = false;
+    }
+
+    document.getElementById("previous-month").addEventListener("click", () => {
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+      render();
+    });
+
+    document.getElementById("next-month").addEventListener("click", () => {
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+      render();
+    });
+
+    daysElement.addEventListener("click", event => {
+      const day = event.target.closest("[data-date]");
+      if (day) openDialog(day.dataset.date);
+    });
+
+    document.querySelectorAll(".shift-option").forEach(button => {
+      button.addEventListener("click", () => {
+        selectedShift = button.dataset.option;
+        document.querySelectorAll(".shift-option").forEach(option => {
+          option.classList.toggle("selected", option === button);
+        });
+      });
+    });
+
+    document.getElementById("save-shift").addEventListener("click", async () => {
+      if (selectedDate && selectedShift) {
+        shifts[selectedDate] = selectedShift;
+        saveShiftsLocally();
+        try {
+          await saveCloudShift(selectedDate, selectedShift);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      dialog.hidden = true;
+      render();
+    });
+
+    document.getElementById("clear-shift").addEventListener("click", async () => {
+      if (selectedDate) {
+        delete shifts[selectedDate];
+        saveShiftsLocally();
+        try {
+          await clearCloudShift(selectedDate);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      dialog.hidden = true;
+      render();
+    });
+
+    dialog.addEventListener("click", event => {
+      if (event.target === dialog) dialog.hidden = true;
+    });
+
+    render();
+    loadCloudShifts();
+  </script>
+</body>
+</html>
